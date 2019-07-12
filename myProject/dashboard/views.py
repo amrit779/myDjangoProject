@@ -28,6 +28,7 @@ def index(request):
             excel_data.append(row_data)
         df = pd.DataFrame(excel_data, columns = excel_data[0])
         list1 = df['Enrolment No.']
+        list1 = list(set(list1))
         #return render(request, 'index.html', {"excel_data":excel_data})
         return render(request, 'index.html', {"list1":list1})
         #return render(request, df.to_html())
