@@ -1,7 +1,9 @@
 from django.shortcuts import render
+from django.http import HttpResponse
 import openpyxl
 import pandas as pd
-
+from .models import Order
+from datetime import datetime
 
 def index(request):
     if "GET" == request.method:
@@ -10,25 +12,30 @@ def index(request):
         excel_file = request.FILES["excel_file"]
 
         # you may put validations here to check extension or file size
+        workbook = openpyxl.load_workbook(excel_file)
 
-        wb = openpyxl.load_workbook(excel_file)
-
-        # getting a particular sheet by name out of many sheets
         # getting active sheet
-        worksheet = wb.active
-        #print(worksheet)
+        excel_data = workbook.active
+        
+        Order.objects.all().delete()
+        for column in excel_data.iter_rows(min_row=2, max_row=excel_data.max_row):
+            #date = datetime.strptime(str(column[0].value), "%m/%d/%Y").strftime('%Y-%m-%d')    
+            _, created = Order.objects.update_or_create(
+                OrderDate = column[0].value,
+                Region = str(column[1].value),
+                Rep = str(column[2].value),
+                Item = str(column[3].value),
+                Units = str(column[4].value),
+                UnitCost = str(column[5].value),
+                Total = str(column[6].value),
+            )
+        df = pd.DataFrame(list(Order.objects.all().values()))
+        #return render(request, 'index.html', {"excel_data":df})
+        return render(request, 'index.html', {})
 
-        excel_data = list()
-        # iterating over the rows and
-        # getting value from each cell in row
-        for row in worksheet.iter_rows():
-            row_data = list()
-            for cell in row:
-                row_data.append(str(cell.value))
-            excel_data.append(row_data)
-        df = pd.DataFrame(excel_data, columns = excel_data[0])
-        list1 = df['Enrolment No.']
-        list1 = list(set(list1))
-        #return render(request, 'index.html', {"excel_data":excel_data})
-        return render(request, 'index.html', {"list1":list1})
-        #return render(request, df.to_html())
+def loadData(request):
+    df = pd.DataFrame(list(Order.objects.all().values()))
+    #return render(request, 'index.html', {"excel_data":df})
+    #return render(request, 'dashboard/home.html', {})
+    #return HttpResponse(df.to_html())
+    return render(request, 'dashboard/home.html', {})
